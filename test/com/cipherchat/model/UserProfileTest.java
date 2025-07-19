@@ -49,7 +49,7 @@ public class UserProfileTest {
         assertEquals(1, inbox.size());
 
         Message msg = inbox.get(0);
-        var result = msg.decrypt(bob.getPrivateKey(), alice.getPublicKey());
+        var result = msg.decrypt(bob.getPrivateKey());
         assertTrue(result.isSignatureVerified());
         assertEquals(msgText, new String(result.getPlainText()));
     }

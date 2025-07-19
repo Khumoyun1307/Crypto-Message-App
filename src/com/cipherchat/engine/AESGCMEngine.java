@@ -6,7 +6,7 @@ import javax.crypto.spec.GCMParameterSpec;
 import java.security.SecureRandom;
 
 public class AESGCMEngine {
-    static final int IV_LENGTH = 12;
+    public static final int IV_LENGTH = 12;
     private static final String TRANSFORMATION = "AES/GCM/NoPadding";
     private static final int TAG_LENGTH_BIT = 128;
 

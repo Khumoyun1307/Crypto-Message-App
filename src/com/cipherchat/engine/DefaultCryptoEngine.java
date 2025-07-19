@@ -18,17 +18,14 @@ public class DefaultCryptoEngine implements CryptoEngine {
                                  String senderUsername,
                                  PublicKey recipientPublicKey,
                                  PrivateKey senderPrivateKey) throws CryptoException {
-        // 1) Generate AES key
         SecretKey aesKey = KeyManager.generateAESKey();
-        // 2) Encrypt plaintext with AAD = senderUsername bytes
         byte[] aad = senderUsername.getBytes(java.nio.charset.StandardCharsets.UTF_8);
         byte[] ivAndCipher = aesEngine.encrypt(plainText, aad, aesKey);
-        // 3) Wrap AES key
+
         byte[] wrappedKey = rsaEngine.wrapKey(aesKey.getEncoded(), recipientPublicKey);
-        // 4) Prepare data for signature
         byte[] sigData = concatenate(ivAndCipher, wrappedKey, aad);
         byte[] signature = sigEngine.sign(sigData, senderPrivateKey);
-        // 5) Extract iv and cipherText
+
         byte[] iv = Arrays.copyOfRange(ivAndCipher, 0, AESGCMEngine.IV_LENGTH);
         byte[] cipherText = Arrays.copyOfRange(ivAndCipher, AESGCMEngine.IV_LENGTH, ivAndCipher.length);
         return new EncryptResult(iv, cipherText, wrappedKey, signature, senderUsername);
@@ -40,17 +37,53 @@ public class DefaultCryptoEngine implements CryptoEngine {
                                  PublicKey senderPublicKey) throws CryptoException {
         String sender = result.getSenderUsername();
         byte[] aad = sender.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-        // 1) Verify signature
+
         byte[] sigData = concatenate(result.getIv(), result.getCipherText(), result.getWrappedKey(), aad);
         boolean verified = sigEngine.verify(sigData, result.getSignature(), senderPublicKey);
         if (!verified) throw new CryptoException("Signature verification failed");
-        // 2) Unwrap AES key
+
         byte[] aesKeyBytes = rsaEngine.unwrapKey(result.getWrappedKey(), recipientPrivateKey);
         SecretKey aesKey = KeyManager.restoreAESKey(aesKeyBytes);
-        // 3) Decrypt ciphertext
+
         byte[] ivAndCipher = concatenate(result.getIv(), result.getCipherText());
         byte[] plainText = aesEngine.decrypt(ivAndCipher, aad, aesKey);
         return new DecryptResult(plainText, sender, verified);
+    }
+
+    // Generic helpers
+    @Override
+    public SecretKey generateAESKey() throws CryptoException {
+        return KeyManager.generateAESKey();
+    }
+
+    @Override
+    public byte[] aesGcmEncrypt(byte[] plainText, byte[] aad, SecretKey key) throws CryptoException {
+        return aesEngine.encrypt(plainText, aad, key);
+    }
+
+    @Override
+    public byte[] wrapKey(byte[] aesKeyBytes, PublicKey recipientPublicKey) throws CryptoException {
+        return rsaEngine.wrapKey(aesKeyBytes, recipientPublicKey);
+    }
+
+    @Override
+    public byte[] prepareSignatureData(byte[] ivAndCipherText, byte[] wrappedKey, byte[] aad) {
+        return concatenate(ivAndCipherText, wrappedKey, aad);
+    }
+
+    @Override
+    public byte[] signData(byte[] data, PrivateKey senderPrivateKey) throws CryptoException {
+        return sigEngine.sign(data, senderPrivateKey);
+    }
+
+    @Override
+    public EncryptResult createEncryptedResult(byte[] ivAndCipherText,
+                                             byte[] wrappedKey,
+                                             byte[] signature,
+                                             String senderUsername) {
+        byte[] iv = Arrays.copyOfRange(ivAndCipherText, 0, AESGCMEngine.IV_LENGTH);
+        byte[] cipherText = Arrays.copyOfRange(ivAndCipherText, AESGCMEngine.IV_LENGTH, ivAndCipherText.length);
+        return new EncryptResult(iv, cipherText, wrappedKey, signature, senderUsername);
     }
 
     private byte[] concatenate(byte[]... arrays) {
