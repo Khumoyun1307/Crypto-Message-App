@@ -36,11 +36,13 @@ A simple Java console-based application for secure messaging using hybrid encryp
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/crypto-message-app.git
-cd crypto-message-app
+git clone https://github.com/Khumoyun1307/Crypto-Message-App.git
+cd Crypto-Message-App
 ```
 
 ### Compile
+
+javac -d out $(find src -com/ "*.java")
 
 Using Maven:
 
@@ -57,7 +59,7 @@ gradle build
 ### Run
 
 ```bash
-java -jar cryptoMessageApp/target/crypto-message-app-1.0.jar
+java -cp out com.cipherchat.app.Main
 ```
 
 ## Usage
